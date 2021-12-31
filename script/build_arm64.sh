@@ -1,0 +1,3 @@
+SET GOARM=7
+SET GOARCH=arm64
+SET GOOS=linux

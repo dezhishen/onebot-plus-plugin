@@ -19,7 +19,6 @@ func main() {
 		MessageGroup(func(req *model.EventMessageGroup, cli cli.OnebotCli) error {
 			if len(req.Message) > 0 && req.Message[0].Type == "text" {
 				v, ok := req.Message[0].Data.(*model.MessageElementText)
-				logrus.Infof("%v", v)
 				if ok && v.Text == ".r" {
 					logrus.Infof("%v", v)
 					name := req.Sender.Card
