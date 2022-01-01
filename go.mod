@@ -3,8 +3,8 @@ module github.com/dezhishen/onebot-plus-plugin
 go 1.17
 
 require (
-	github.com/dezhishen/onebot-plus v0.0.0-20211231030346-79951d854a34
-	github.com/dezhishen/onebot-sdk v0.0.0-20211231044434-cd27229f5155
+	github.com/dezhishen/onebot-plus v0.0.0-20220101045942-85004633033d
+	github.com/dezhishen/onebot-sdk v0.0.0-20220101044732-c7864f62aa0a
 )
 
 require (
