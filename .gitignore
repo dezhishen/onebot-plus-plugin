@@ -1,2 +1,9 @@
 #*.exe
 today_fortune/fortune/fortune
+plugins/health-linux-amd64
+plugins/health-linux-arm64v7
+plugins/health-windows-amd64.exe
+health/main.go
+plugins/jrrp-linux-amd64
+plugins/jrrp-linux-arm64v7
+plugins/jrrp-windows-amd64.exe

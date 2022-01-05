@@ -25,7 +25,7 @@ func main() {
 					return nil
 				}
 				if v.Text == ".cat" || v.Text == ".thecat" || v.Text == "来点猫猫图" {
-					b, e := getCatPic()
+					b, e := getCatPicWithRetry()
 					if e != nil {
 						cli.SendGroupMsg(
 							&model.GroupMsg{
@@ -41,7 +41,7 @@ func main() {
 					}
 					cli.SendGroupMsg(genPicMsg(req.GroupId, b))
 				} else if v.Text == ".dog" || v.Text == ".thedog" || v.Text == "来点狗狗图" {
-					b, e := getDogPic()
+					b, e := getDogPicWithRetry()
 					if e != nil {
 						cli.SendGroupMsg(
 							&model.GroupMsg{
@@ -86,8 +86,19 @@ func genPicMsg(groupId int64, buf []byte) *model.GroupMsg {
 
 var catUrl = "https://api.thecatapi.com/v1/images/search"
 
-func getCatPic() ([]byte, error) {
+func getCatPicWithRetry() ([]byte, error) {
+	var err error
+	for i := 0; i < 3; i++ {
+		r, err := getCatPic()
+		if err != nil {
+			continue
+		}
+		return r, nil
+	}
+	return nil, err
+}
 
+func getCatPic() ([]byte, error) {
 	r, err := http.DefaultClient.Get(catUrl)
 	if err != nil {
 		return nil, err
@@ -124,6 +135,17 @@ func getCatPic() ([]byte, error) {
 
 var dogUrl = "https://api.thedogapi.com/v1/images/search"
 
+func getDogPicWithRetry() ([]byte, error) {
+	var err error
+	for i := 0; i < 3; i++ {
+		r, err := getDogPic()
+		if err != nil {
+			continue
+		}
+		return r, nil
+	}
+	return nil, err
+}
 func getDogPic() ([]byte, error) {
 	r, err := http.DefaultClient.Get(dogUrl)
 	if err != nil {
