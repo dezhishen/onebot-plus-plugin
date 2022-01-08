@@ -147,6 +147,8 @@ func newHttpCli() *http.Client {
 		proxyUrl, err := url.Parse(proxy)
 		if err == nil {
 			cli = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+		} else {
+			logrus.Errorf("解析代理出错,%v", err)
 		}
 	}
 	if cli == nil {
