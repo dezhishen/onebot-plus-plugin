@@ -20,32 +20,33 @@ func main() {
 		//设置插件内容
 		Id("pixiv").Name("pixiv").Description("随机推荐Pixiv图片").Help("gkd").
 		//Onebot回调事件
-		MessageGroup(func(req *model.EventMessageGroup, cli cli.OnebotCli) error {
-			if len(req.Message) > 0 && req.Message[0].Type == "text" {
-				v, ok := req.Message[0].Data.(*model.MessageElementText)
-				if !ok {
-					return nil
-				}
-				if v.Text == "gkd" || v.Text == "来点色图" || v.Text == "色图呢" {
-					b, e := getPic()
-					if e != nil {
-						cli.SendGroupMsg(
-							&model.GroupMsg{
-								GroupId: req.GroupId,
-								Message: []*model.MessageSegment{
-									{Type: "text", Data: &model.MessageElementText{
-										Text: fmt.Sprintf("获取图片失败,错误,%v", e),
-									}},
-								},
-							},
-						)
+		MessageGroup(
+			func(req *model.EventMessageGroup, cli cli.OnebotCli) error {
+				if len(req.Message) > 0 && req.Message[0].Type == "text" {
+					v, ok := req.Message[0].Data.(*model.MessageElementText)
+					if !ok {
 						return nil
 					}
-					cli.SendGroupMsg(common.GenGroupPicMsg(req.GroupId, b))
+					if v.Text == "gkd" || v.Text == "来点色图" || v.Text == "色图呢" {
+						b, e := getPic()
+						if e != nil {
+							cli.SendGroupMsg(
+								&model.GroupMsg{
+									GroupId: req.GroupId,
+									Message: []*model.MessageSegment{
+										{Type: "text", Data: &model.MessageElementText{
+											Text: fmt.Sprintf("获取图片失败,错误,%v", e),
+										}},
+									},
+								},
+							)
+							return nil
+						}
+						cli.SendGroupMsg(common.GenGroupPicMsg(req.GroupId, b))
+					}
 				}
-			}
-			return nil
-		}).
+				return nil
+			}).
 		//构建插件
 		Build().
 		//启动
@@ -53,19 +54,31 @@ func main() {
 }
 
 func getPic() ([]byte, error) {
-	return pixiv.DownloadImage(randomAImage())
+	url, e := randomAImage()
+	if e != nil {
+		return nil, e
+	}
+	return pixiv.DownloadImage(url)
 }
-func randomAImage() string {
+func randomAImage() (string, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if len(allImages) == 0 {
-		resetImages()
+		e := resetImages()
+		if e != nil {
+			return "", e
+		}
 	}
 	result := allImages[0]
 	allImages = allImages[1:]
-	return result
+	return result, nil
 }
 
-func resetImages() {
-	mutex.Lock()
+func resetImages() error {
+	r, e := pixiv.RandomImgsWithRetry()
+	if e != nil {
+		return e
+	}
+	allImages = r
+	return nil
 }
