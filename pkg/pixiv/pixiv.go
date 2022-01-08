@@ -135,8 +135,12 @@ func generatePixivCat(id int64) (string, error) {
 	return strings.ReplaceAll(resp.OriginalUrlProxy, "pixiv.cat", "pixiv.re"), nil
 }
 
+var cli *http.Client
+
 func newHttpCli() *http.Client {
-	var cli *http.Client
+	if cli != nil {
+		return cli
+	}
 	proxy := getProxy()
 	if proxy != "" {
 		logrus.Infof("使用代理,%v", proxy)
