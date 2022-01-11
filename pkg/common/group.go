@@ -17,3 +17,14 @@ func GenGroupPicMsg(groupId int64, buf []byte) *model.GroupMsg {
 		},
 	}
 }
+
+func GenGroupTextMsg(groupId int64, text string) *model.GroupMsg {
+	return &model.GroupMsg{
+		GroupId: groupId,
+		Message: []*model.MessageSegment{
+			{Type: "text", Data: &model.MessageElementText{
+				Text: text,
+			}},
+		},
+	}
+}
