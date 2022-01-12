@@ -1,5 +1,5 @@
 
-export CGO_ENABLED=0
+#export CGO_ENABLED=1
 
 export GOARCH=amd64
 export GOOS=windows

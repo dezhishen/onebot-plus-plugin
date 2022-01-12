@@ -28,3 +28,15 @@ func GenGroupTextMsg(groupId int64, text string) *model.GroupMsg {
 		},
 	}
 }
+
+func GenMessageSegmentShare(url, title, content, image string) *model.MessageSegment {
+	return &model.MessageSegment{
+		Type: "share",
+		Data: &model.MessageElementShare{
+			Url:     url,
+			Title:   title,
+			Content: content,
+			Image:   image,
+		},
+	}
+}

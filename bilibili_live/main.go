@@ -54,6 +54,7 @@ func main() {
 							}
 							addListen(uint32(_id), req.GroupId)
 						}
+						cli.SendGroupMsg(common.GenGroupTextMsg(req.GroupId, "成功订阅"))
 					} else if line.Event == "remove" {
 						for i, id := range res {
 							if i == 0 {
@@ -66,6 +67,7 @@ func main() {
 							}
 							removeListen(uint32(_id), req.GroupId)
 						}
+						cli.SendGroupMsg(common.GenGroupTextMsg(req.GroupId, "成功取消"))
 					}
 				}
 			}
@@ -130,6 +132,7 @@ func addListen(liveId uint32, groupId int64) {
 		for _, e := range groupIds {
 			if groupId == e {
 				flag = false
+				break
 			}
 		}
 		if flag {
@@ -141,6 +144,10 @@ func addListen(liveId uint32, groupId int64) {
 		}
 	} else {
 		liveGroupIds[liveId] = []int64{groupId}
+		err := insertLiveGroup(liveId, groupId)
+		if err != nil {
+			logrus.Errorf("insertLiveGroup err %v", err)
+		}
 	}
 	if _, ok := clis[liveId]; !ok {
 		clis[liveId] = newListenCli(liveId)
@@ -184,7 +191,8 @@ func newListenCli(id uint32) *danmagu.LiveClient {
 	cli.Handler(message.LIVE, func(ctx context.Context, live message.Live) {
 		if groupIds, ok := liveGroupIds[id]; ok {
 			for _, groupId := range groupIds {
-				_onebotCli.SendGroupMsg(common.GenGroupTextMsg(groupId, fmt.Sprintf("%v开播啦", live.Roomid)))
+				msg := common.GenGroupTextMsg(groupId, fmt.Sprintf("开播啦\nhttps://live.bilibili.com/%v", live.Roomid))
+				_onebotCli.SendGroupMsg(msg)
 			}
 		}
 	})
@@ -194,6 +202,30 @@ func newListenCli(id uint32) *danmagu.LiveClient {
 				_onebotCli.SendGroupMsg(common.GenGroupTextMsg(groupId, fmt.Sprintf("%v下播啦", pre.RoomID)))
 			}
 		}
+	})
+	cli.Handler(message.DANMU_MSG, func(ctx context.Context, msg message.Danmaku) {
+	})
+	cli.Handler(message.RQZ, func(ctx context.Context, rqz uint32) {
+	})
+	cli.Handler(message.DEFAULT, func(c1 context.Context, c2 *message.Context) {
+	})
+	cli.Handler(message.SEND_GIFT, func(ctx context.Context, gift message.SendGift) {
+	})
+	cli.Handler(message.INTERACT_WORD, func(ctx context.Context, word message.InteractWord) {
+	})
+	cli.Handler(message.ONLINE_RANK_V2, func(ctx context.Context, rankV2 message.OnlineRankV2) {
+	})
+	cli.Handler(message.ONLINE_RANK_TOP3, func(ctx context.Context, rankTOP3 message.OnlineRankTOP3) {
+	})
+	cli.Handler(message.COMBO_SEND, func(ctx context.Context, combo message.ComboSend) {
+	})
+	cli.Handler(message.WIDGET_BANNER, func(ctx context.Context, banner message.WidgetBanner) {
+	})
+	cli.Handler(message.ENTRY_EFFECT, func(ctx context.Context, entry message.EntryEffect) {
+	})
+	cli.Handler(message.ONLINE_RANK_COUNT, func(ctx context.Context, count message.OnlineRankCount) {
+	})
+	cli.Handler(message.ROOM_RANK, func(ctx context.Context, rank message.RoomRank) {
 	})
 	return cli
 }

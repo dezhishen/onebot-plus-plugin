@@ -7,7 +7,7 @@ function read_dir(){
         then
             echo "build plugin : $file"
             if [[ ! "${exclude[@]}" =~ "${file}" ]]; then
-                export CGO_ENABLED=0
+                export CGO_ENABLED=1
                 export GOARCH=amd64
                 export GOOS=windows
                 go build -o ../plugins/$file-windows-amd64.exe ../$file
