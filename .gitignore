@@ -7,3 +7,4 @@ health/main.go
 plugins/jrrp-linux-amd64
 plugins/jrrp-linux-arm64v7
 plugins/jrrp-windows-amd64.exe
+bilibili_live/bili-live.db

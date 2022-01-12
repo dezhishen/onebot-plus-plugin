@@ -7,16 +7,14 @@ import (
 	"strings"
 	"sync"
 
-	"database/sql"
-
 	"github.com/dezhishen/onebot-plus-plugin/pkg/command"
 	"github.com/dezhishen/onebot-plus-plugin/pkg/common"
 	"github.com/dezhishen/onebot-plus/pkg/cli"
 	"github.com/dezhishen/onebot-plus/pkg/plugin"
 	"github.com/dezhishen/onebot-sdk/pkg/model"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/miRemid/danmagu"
 	"github.com/miRemid/danmagu/message"
+	"github.com/sirupsen/logrus"
 )
 
 type BiliReq struct {
@@ -45,7 +43,10 @@ func main() {
 						return nil
 					}
 					if line.Event == "add" {
-						for _, id := range res {
+						for i, id := range res {
+							if i == 0 {
+								continue
+							}
 							_id, err := strconv.Atoi(id)
 							if err != nil {
 								cli.SendGroupMsg(common.GenGroupTextMsg(req.GroupId, fmt.Sprintf("%v", err)))
@@ -54,7 +55,10 @@ func main() {
 							addListen(uint32(_id), req.GroupId)
 						}
 					} else if line.Event == "remove" {
-						for _, id := range res {
+						for i, id := range res {
+							if i == 0 {
+								continue
+							}
 							_id, err := strconv.Atoi(id)
 							if err != nil {
 								cli.SendGroupMsg(common.GenGroupTextMsg(req.GroupId, fmt.Sprintf("%v", err)))
@@ -82,6 +86,7 @@ var _onebotCli cli.OnebotCli
 func intiOnebotCli(onebotCli cli.OnebotCli) {
 	_onebotCli = onebotCli
 }
+
 func startListen() error {
 	mux.Lock()
 	defer mux.Unlock()
@@ -116,6 +121,7 @@ func startListen() error {
 	}
 	return nil
 }
+
 func addListen(liveId uint32, groupId int64) {
 	mux.Lock()
 	defer mux.Unlock()
@@ -128,7 +134,10 @@ func addListen(liveId uint32, groupId int64) {
 		}
 		if flag {
 			liveGroupIds[liveId] = append(groupIds, groupId)
-			insertLiveGroup(liveId, groupId)
+			err := insertLiveGroup(liveId, groupId)
+			if err != nil {
+				logrus.Errorf("insertLiveGroup err %v", err)
+			}
 		}
 	} else {
 		liveGroupIds[liveId] = []int64{groupId}
@@ -136,7 +145,10 @@ func addListen(liveId uint32, groupId int64) {
 	if _, ok := clis[liveId]; !ok {
 		clis[liveId] = newListenCli(liveId)
 		go clis[liveId].Listen()
-		insertLive(liveId, "")
+		err := insertLive(liveId, "")
+		if err != nil {
+			logrus.Errorf("insertLive err %v", err)
+		}
 	}
 }
 
@@ -184,112 +196,4 @@ func newListenCli(id uint32) *danmagu.LiveClient {
 		}
 	})
 	return cli
-}
-
-func initDB() {
-	db := getDb()
-	db.Exec("create table if not exists bilibili_live ( id int NOT NULL,name CHAR(32) NOT NULL)")
-	db.Exec("create table if not exists bilibili_live_group(id int NOT NULL,group_id int NOT NULL)")
-}
-
-var _db *sql.DB
-var db_mtx sync.RWMutex
-
-func getDb() *sql.DB {
-	db_mtx.RLock()
-	if _db != nil {
-		db_mtx.RUnlock()
-		return _db
-	}
-	db_mtx.RUnlock()
-	db_mtx.Lock()
-	defer db_mtx.Unlock()
-	if _db == nil {
-		var err error
-		_db, err = sql.Open("sqlite3", "./bili-live.db")
-		if err != nil {
-			panic(err)
-		}
-	}
-	return _db
-
-}
-func delLive(liveId uint32) error {
-	db := getDb()
-	stmt, err := db.Prepare("delete from bilibili_live where id=?")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(liveId)
-	return err
-}
-
-func delLiveGroup(liveId uint32, groupId int64) error {
-	db := getDb()
-	stmt, err := db.Prepare("delete from bilibili_live_group where id=? and group_id = ?")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(liveId, groupId)
-	return err
-}
-
-func insertLive(liveId uint32, name string) error {
-	db := getDb()
-	stmt, err := db.Prepare("INSERT INTO bilibili_live(id, name) values(?,?)")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(liveId, name)
-	return err
-}
-
-func insertLiveGroup(liveId uint32, groupId int64) error {
-	db := getDb()
-	stmt, err := db.Prepare("INSERT INTO bilibili_live_group(id, group_id) values(?,?)")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(liveId, groupId)
-	return err
-}
-
-func getAllLives() ([]uint32, error) {
-	db := getDb()
-	rows, err := db.Query("select id from bilibili_live")
-	if err != nil {
-		return nil, err
-	}
-	var result []uint32
-	for rows.Next() {
-		var liveId uint32
-		err = rows.Scan(&liveId)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, liveId)
-	}
-	return result, nil
-}
-
-func getGroupIdsByLiveId(liveId uint32) ([]int64, error) {
-	db := getDb()
-	stmt, err := db.Prepare("select group_id from bilibili_live_group where id = ? ")
-	if err != nil {
-		return nil, err
-	}
-	rows, err := stmt.Query(liveId)
-	if err != nil {
-		return nil, err
-	}
-	var result []int64
-	for rows.Next() {
-		var groupId int64
-		err = rows.Scan(&groupId)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, groupId)
-	}
-	return result, nil
 }
