@@ -87,7 +87,7 @@ func RandomImgs() ([]string, error) {
 			continue
 		}
 		result = append(result, s)
-		if len(result) > 10 {
+		if len(result) > 100 {
 			break
 		}
 	}
