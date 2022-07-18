@@ -76,7 +76,7 @@ func main() {
 // }
 
 func sendWithRetry(cli cli.OnebotCli, groupId int64, req *model.EventMessageGroup, image *pixiv.PixivImage) error {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 5; i++ {
 		image, err := getPic()
 		if err != nil {
 			sendError(cli, req.GroupId, fmt.Sprintf("获取图片失败,错误,%v", err))
@@ -108,17 +108,18 @@ func sendWithRetry(cli cli.OnebotCli, groupId int64, req *model.EventMessageGrou
 				},
 			})
 			if err != nil {
-				sendError(cli, req.GroupId, fmt.Sprintf("发送消息,错误,%v", err))
+				sendError(cli, req.GroupId, fmt.Sprintf("发送消息,%v", err))
 				return nil
 			}
 			if resp.Retcode != 0 {
+				time.Sleep(1 * time.Second)
 				continue
-				// return nil
 			}
 			time.Sleep(15 * time.Second)
 			cli.DelMsg(resp.Data.MessageId)
+			return nil
 		} else {
-			_, err := cli.SendGroupMsg(&model.GroupMsg{
+			resp, err := cli.SendGroupMsg(&model.GroupMsg{
 				GroupId: req.GroupId,
 				Message: []*model.MessageSegment{
 					{Type: "image", Data: &model.MessageElementImage{
@@ -131,9 +132,14 @@ func sendWithRetry(cli cli.OnebotCli, groupId int64, req *model.EventMessageGrou
 				sendError(cli, req.GroupId, fmt.Sprintf("发送消息,%v", err))
 				return nil
 			}
+			if resp.Retcode != 0 {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			return nil
 		}
 	}
-	sendError(cli, req.GroupId, fmt.Sprintf("多次发送消息失败"))
+	sendError(cli, req.GroupId, "多次发送消息失败")
 	return nil
 }
 
