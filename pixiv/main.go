@@ -51,61 +51,7 @@ func main() {
 						return nil
 					}
 					if v.Text == "gkd" || v.Text == "来点色图" || v.Text == "色图呢" {
-						image, err := getPic()
-						if err != nil {
-							sendError(cli, req.GroupId, fmt.Sprintf("获取图片失败,错误,%v", err))
-							return nil
-						}
-						buf, err := downloadImage(image)
-						if err != nil {
-							cli.SendGroupMsg(
-								&model.GroupMsg{
-									GroupId: req.GroupId,
-									Message: []*model.MessageSegment{
-										{Type: "text", Data: &model.MessageElementText{
-											Text: fmt.Sprintf("获取图片失败,错误,%v", err),
-										}},
-									},
-								},
-							)
-							return nil
-						}
-						if image.R18 {
-							r, _ := cli.GetLoginInfo()
-							resp, err := cli.SendGroupForwardMessageByRawMsg(req.GroupId, r.Data.UserId, r.Data.Nickname, []*model.MessageSegment{
-								{
-									Type: "image",
-									Data: &model.MessageElementImage{
-										ImageType: "",
-										File:      "base64://" + base64.StdEncoding.EncodeToString(buf),
-									},
-								},
-							})
-							if err != nil {
-								sendError(cli, req.GroupId, fmt.Sprintf("发送消息,错误,%v", err))
-								return nil
-							}
-							if resp.Retcode != 0 {
-								sendError(cli, req.GroupId, fmt.Sprintf("发送消息,错误,%v", "消息可能被风控"))
-								return nil
-							}
-							time.Sleep(15 * time.Second)
-							cli.DelMsg(resp.Data.MessageId)
-						} else {
-							_, err := cli.SendGroupMsg(&model.GroupMsg{
-								GroupId: req.GroupId,
-								Message: []*model.MessageSegment{
-									{Type: "image", Data: &model.MessageElementImage{
-										ImageType: "",
-										File:      "base64://" + base64.StdEncoding.EncodeToString(buf),
-									}},
-								},
-							})
-							if err != nil {
-								sendError(cli, req.GroupId, fmt.Sprintf("发送消息,错误,%v", err))
-								return nil
-							}
-						}
+						sendWithRetry(cli, req.GroupId, req, nil)
 					}
 				}
 				return nil
@@ -128,6 +74,68 @@ func main() {
 // 	imageResp.Body.Close()
 // 	return imageBytes, nil
 // }
+
+func sendWithRetry(cli cli.OnebotCli, groupId int64, req *model.EventMessageGroup, image *pixiv.PixivImage) error {
+	for i := 0; i < 3; i++ {
+		image, err := getPic()
+		if err != nil {
+			sendError(cli, req.GroupId, fmt.Sprintf("获取图片失败,错误,%v", err))
+			return nil
+		}
+		buf, err := downloadImage(image)
+		if err != nil {
+			cli.SendGroupMsg(
+				&model.GroupMsg{
+					GroupId: req.GroupId,
+					Message: []*model.MessageSegment{
+						{Type: "text", Data: &model.MessageElementText{
+							Text: fmt.Sprintf("获取图片失败,错误,%v", err),
+						}},
+					},
+				},
+			)
+			return nil
+		}
+		if image.R18 {
+			r, _ := cli.GetLoginInfo()
+			resp, err := cli.SendGroupForwardMessageByRawMsg(req.GroupId, r.Data.UserId, r.Data.Nickname, []*model.MessageSegment{
+				{
+					Type: "image",
+					Data: &model.MessageElementImage{
+						ImageType: "",
+						File:      "base64://" + base64.StdEncoding.EncodeToString(buf),
+					},
+				},
+			})
+			if err != nil {
+				sendError(cli, req.GroupId, fmt.Sprintf("发送消息,错误,%v", err))
+				return nil
+			}
+			if resp.Retcode != 0 {
+				continue
+				// return nil
+			}
+			time.Sleep(15 * time.Second)
+			cli.DelMsg(resp.Data.MessageId)
+		} else {
+			_, err := cli.SendGroupMsg(&model.GroupMsg{
+				GroupId: req.GroupId,
+				Message: []*model.MessageSegment{
+					{Type: "image", Data: &model.MessageElementImage{
+						ImageType: "",
+						File:      "base64://" + base64.StdEncoding.EncodeToString(buf),
+					}},
+				},
+			})
+			if err != nil {
+				sendError(cli, req.GroupId, fmt.Sprintf("发送消息,%v", err))
+				return nil
+			}
+		}
+	}
+	sendError(cli, req.GroupId, fmt.Sprintf("多次发送消息失败"))
+	return nil
+}
 
 func downloadImage(p *pixiv.PixivImage) ([]byte, error) {
 	imageResp, err := http.DefaultClient.Get(p.Urls.GetUrl())
