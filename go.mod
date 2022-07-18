@@ -3,8 +3,8 @@ module github.com/dezhishen/onebot-plus-plugin
 go 1.16
 
 require (
-	github.com/dezhishen/onebot-plus v0.0.0-20220102022814-be722583f12e
-	github.com/dezhishen/onebot-sdk v0.0.0-20220101054117-099f770fe77f
+	github.com/dezhishen/onebot-plus v0.0.0-20220718154201-bc5969fbbee6
+	github.com/dezhishen/onebot-sdk v0.0.0-20220718153852-997a503aeef1
 )
 
 require (
@@ -13,7 +13,7 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/mattn/go-sqlite3 v1.14.10
-	github.com/miRemid/danmagu v0.3.1 // indirect
+	github.com/miRemid/danmagu v0.3.1
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/sys v0.0.0-20220111092808-5a964db01320 // indirect
 )
